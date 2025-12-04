@@ -45,3 +45,9 @@ mod netbsd;
 
 #[cfg(target_os = "netbsd")]
 pub use self::netbsd::*;
+
+#[cfg(target_os = "zkvm")]
+mod sp1;
+
+#[cfg(target_os = "zkvm")]
+pub use self::sp1::*;

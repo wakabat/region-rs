@@ -22,7 +22,7 @@ pub enum Error {
   /// A system call failed.
   SystemCall(io::Error),
   /// A macOS kernel call failed
-  MachCall(libc::c_int),
+  MachCall(core::ffi::c_int),
 }
 
 impl fmt::Display for Error {
