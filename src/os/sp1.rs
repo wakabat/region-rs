@@ -1,19 +1,43 @@
 use crate::{Protection, Region, Result};
 
+use sp1_primitives::consts::{PAGE_SIZE, PROT_EXEC, PROT_NONE, PROT_READ, PROT_WRITE};
+use sp1_zkvm::lib::mprotect::mprotect;
+
 pub fn page_size() -> usize {
-  4096
+  PAGE_SIZE
 }
 
-pub unsafe fn alloc(_base: *const (), _size: usize, _protection: Protection) -> Result<*const ()> {
-  unimplemented!()
+fn convert(protection: Protection) -> u8 {
+  let mut r = PROT_NONE;
+  if protection & Protection::READ == Protection::READ {
+    r |= PROT_READ;
+  }
+  if protection & Protection::WRITE == Protection::WRITE {
+    r |= PROT_WRITE;
+  }
+  if protection & Protection::EXECUTE == Protection::EXECUTE {
+    r |= PROT_EXEC;
+  }
+  r
 }
 
-pub unsafe fn free(_base: *const (), _size: usize) -> Result<()> {
-  unimplemented!()
+// For our use case, we are ignoring base address
+pub unsafe fn alloc(_base: *const (), size: usize, protection: Protection) -> Result<*const ()> {
+  let layout = std::alloc::Layout::from_size_align(size, page_size()).unwrap();
+  let p = unsafe { std::alloc::alloc(layout) };
+  mprotect(p as _, size, convert(protection));
+  Ok(p as _)
 }
 
-pub unsafe fn protect(_base: *const (), _size: usize, _protection: Protection) -> Result<()> {
-  // Dummy operation
+pub unsafe fn free(base: *const (), size: usize) -> Result<()> {
+  mprotect(base as _, size, PROT_READ | PROT_WRITE);
+  let layout = std::alloc::Layout::from_size_align(size, page_size()).unwrap();
+  unsafe { std::alloc::dealloc(base as _, layout) };
+  Ok(())
+}
+
+pub unsafe fn protect(base: *const (), size: usize, protection: Protection) -> Result<()> {
+  mprotect(base as _, size, convert(protection));
   Ok(())
 }
 
